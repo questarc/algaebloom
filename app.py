@@ -140,6 +140,7 @@ distinguish harmful algal blooms from neutral ones.
 - Visual analytics help understand bloom risk and assay performance
 
 This app uses **synthetic motifs and toy models**; it is for education only.
+**App developed by Sathvik Kakarla**
 """
 )
 
