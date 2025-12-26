@@ -2,23 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import random
-from textwrap import wrap
 
 # -----------------------------
 # Helper functions
 # -----------------------------
 
 TOXIN_MOTIFS = [
-    "ATGACCTGACCTG",  # synthetic "toxin" motif 1
-    "CGTACGTACGTA",   # synthetic "toxin" motif 2
-    "GGCATGGCATGG"    # synthetic "toxin" motif 3
+    "ATGACCTGACCTG",
+    "CGTACGTACGTA",
+    "GGCATGGCATGG"
 ]
 
 def classify_sequence(seq: str):
-    """
-    Very simplified classification:
-    If any TOXIN_MOTIF appears in the sequence, call it harmful.
-    """
     seq = seq.upper().replace(" ", "").replace("\n", "")
     if not seq:
         return "Unknown", []
@@ -30,20 +25,17 @@ def classify_sequence(seq: str):
         return "Neutral", []
 
 def design_crispr_guide(seq: str, length: int = 20):
-    """
-    Simplified guide design: take the first 'length' bases
-    that look valid (A/C/G/T) and return it.
-    """
     seq = seq.upper().replace(" ", "").replace("\n", "")
     cleaned = "".join([b for b in seq if b in "ACGT"])
     if len(cleaned) < length:
         return None
     return cleaned[:length]
 
+def reverse_complement(seq: str):
+    complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
+    return "".join(complement.get(b, "N") for b in seq[::-1])
+
 def design_primers(seq: str, primer_len: int = 18):
-    """
-    Very naive primer design: pick 5' and 3' segments of the sequence.
-    """
     seq = seq.upper().replace(" ", "").replace("\n", "")
     cleaned = "".join([b for b in seq if b in "ACGT"])
     if len(cleaned) < 2 * primer_len + 20:
@@ -52,16 +44,7 @@ def design_primers(seq: str, primer_len: int = 18):
     reverse = reverse_complement(cleaned[-primer_len:])
     return forward, reverse
 
-def reverse_complement(seq: str):
-    complement = {"A": "T", "T": "A", "C": "G", "G": "C"}
-    return "".join(complement.get(b, "N") for b in seq[::-1])
-
 def simulate_sherlock_signal(guide: str, target: str):
-    """
-    Toy model of SHERLOCK signal:
-    - Score based on number of matching bases between guide and target.
-    - Normalize to [0, 1] and scale to 0–100.
-    """
     if not guide or not target:
         return 0.0
 
@@ -73,24 +56,19 @@ def simulate_sherlock_signal(guide: str, target: str):
 
     window = target[:len(guide)]
     matches = sum(1 for g, t in zip(guide, window) if g == t)
-    score = matches / len(guide)  # fraction of matching bases
+    score = matches / len(guide)
     return round(score * 100, 1)
 
 def generate_example_dataset(n=20):
-    """
-    Create a synthetic dataset of samples with "harmful" or "neutral" labels.
-    """
     data = []
     for i in range(n):
         base_seq = "".join(random.choice("ACGT") for _ in range(200))
-        is_harmful = random.random() < 0.4  # ~40% harmful
+        is_harmful = random.random() < 0.4
 
-        motifs_found = []
         if is_harmful:
             motif = random.choice(TOXIN_MOTIFS)
-            insert_pos = random.randint(0, len(base_seq) - len(motif))
-            seq = base_seq[:insert_pos] + motif + base_seq[insert_pos:]
-            motifs_found.append(motif)
+            pos = random.randint(0, len(base_seq) - len(motif))
+            seq = base_seq[:pos] + motif + base_seq[pos:]
         else:
             seq = base_seq
 
@@ -103,9 +81,8 @@ def generate_example_dataset(n=20):
 
     return pd.DataFrame(data)
 
-
 # -----------------------------
-# Streamlit app
+# Streamlit App
 # -----------------------------
 
 st.set_page_config(
@@ -115,307 +92,199 @@ st.set_page_config(
 
 st.title("Algaebloom: Synthetic Biology CRISPR-SHERLOCK Explorer")
 
-st.markdown(
-    """
+st.markdown("""
 Algaebloom is a conceptual synthetic biology dashboard for **algal bloom monitoring**.
+
 It lets you:
 
-- Upload or paste DNA sequences from algae samples
-- Classify them as **harmful** or **neutral** based on toy toxin motifs
-- Design a simple **CRISPR-SHERLOCK assay** (guide RNA + primers)
-- Visualize sample distributions and simulated assay signals
-"""
-)
+- Upload or paste DNA sequences  
+- Classify them as **harmful** or **neutral**  
+- Design a **CRISPR-SHERLOCK assay**  
+- Visualize bloom risk and assay signals  
+""")
 
 st.sidebar.header("About Algaebloom")
-st.sidebar.markdown(
-    """
-**Goal:** Explore how synthetic biology and CRISPR diagnostics could help
-distinguish harmful algal blooms from neutral ones.
+st.sidebar.markdown("""
+**Goal:** Explore how synthetic biology and CRISPR diagnostics can detect harmful algal blooms.
 
-**Key ideas:**
-
-- Harmful blooms carry **toxin genes**
-- CRISPR-SHERLOCK can detect specific **DNA/RNA sequences**
-- Visual analytics help understand bloom risk and assay performance
-
-This app uses **synthetic motifs and toy models**; it is for education only.
-**App developed by Sathvik Kakarla**
-"""
-)
+This app uses **synthetic motifs and simplified models** for educational purposes.
+""")
 
 tab_overview, tab_classification, tab_crispr, tab_visuals = st.tabs(
     ["Overview", "Sequence classification", "CRISPR-SHERLOCK design", "Visualizations"]
 )
 
 # -----------------------------
-# Overview tab
+# Overview Tab
 # -----------------------------
 with tab_overview:
-    st.subheader("Biology background")
+    st.subheader("Biology Background")
+    st.markdown("""
+Harmful algal blooms (HABs) produce toxins that damage ecosystems and human health.  
+Neutral blooms do not produce toxins and are part of natural cycles.
+""")
 
-    st.markdown(
-        """
-**Algal blooms** occur when algae or cyanobacteria grow rapidly in water.
-They can be:
+    st.subheader("CRISPR-SHERLOCK Concept")
+    st.markdown("""
+SHERLOCK uses CRISPR enzymes to detect specific DNA/RNA sequences with high sensitivity.
 
-- **Harmful algal blooms (HABs):** Produce toxins and damage ecosystems, 
-  aquaculture, and human health.
-- **Neutral blooms:** Do not produce major toxins; part of normal ecosystem dynamics.
-"""
-    )
+This app simulates:
 
-    st.markdown(
-        """
-In real systems, harmful species may produce:
-
-- Neurotoxins (e.g., domoic acid, saxitoxin)
-- Hepatotoxins (e.g., microcystins)
-- Other metabolites that affect fish, shellfish, mammals, and humans
-
-DNA- and RNA-based diagnostics can identify **which species and toxin genes** are present,
-even when blooms look similar by eye or satellite.
-"""
-    )
-
-    st.subheader("CRISPR-SHERLOCK concept (simplified)")
-
-    st.markdown(
-        """
-**SHERLOCK** (Specific High-sensitivity Enzymatic Reporter unLOCKing) uses CRISPR
-enzymes with guide RNAs to detect defined nucleic acid targets.
-
-In this app, we:
-
-1. Choose a target sequence (e.g., toxin gene fragment).
-2. Design a 20-nt guide RNA sequence.
-3. Design simple primers flanking the region.
-4. Simulate an **assay signal** based on how well the guide matches the target.
-"""
-    )
+1. Guide RNA design  
+2. Primer design  
+3. Assay signal simulation  
+""")
 
 # -----------------------------
-# Sequence classification tab
+# Sequence Classification Tab
 # -----------------------------
 with tab_classification:
-    st.subheader("Classify sequences as harmful or neutral")
-
-    st.markdown(
-        """
-Paste one or more DNA sequences (FASTA-like or raw). Each sequence block
-can be separated by a line starting with `>` (like FASTA headers).
-"""
-    )
+    st.subheader("Classify DNA Sequences")
 
     default_seq = """>Sample_1
 ATGACCTGACCTGTTTACGATCGTAGCTAGCTAGCTAGCTAGCTGACTGACTGACTG
 >Sample_2
 ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTA
 """
-    seq_text = st.text_area(
-        "Input sequences",
-        value=default_seq,
-        height=200
-    )
+
+    seq_text = st.text_area("Input sequences", value=default_seq, height=200)
 
     if st.button("Classify sequences"):
         sequences = []
-        current_header = None
-        current_seq = []
+        header = None
+        seq_buffer = []
 
         for line in seq_text.strip().splitlines():
             line = line.strip()
-            if not line:
-                continue
             if line.startswith(">"):
-                # Save previous
-                if current_header is not None:
-                    sequences.append((current_header, "".join(current_seq)))
-                current_header = line[1:] or f"Sample_{len(sequences) + 1}"
-                current_seq = []
+                if header:
+                    sequences.append((header, "".join(seq_buffer)))
+                header = line[1:]
+                seq_buffer = []
             else:
-                current_seq.append(line)
+                seq_buffer.append(line)
 
-        # Last sequence
-        if current_header is not None:
-            sequences.append((current_header, "".join(current_seq)))
+        if header:
+            sequences.append((header, "".join(seq_buffer)))
 
         results = []
         for header, seq in sequences:
             label, motifs = classify_sequence(seq)
             results.append({
                 "Sample ID": header,
-                "Length": len(seq.replace(" ", "").replace("\n", "")),
+                "Length": len(seq),
                 "Classification": label,
                 "Motifs found": ", ".join(motifs) if motifs else "None"
             })
 
-        if results:
-            df_results = pd.DataFrame(results)
-            st.success(f"Classified {len(results)} sequence(s).")
-            st.dataframe(df_results, use_container_width=True)
+        df_results = pd.DataFrame(results)
+        st.dataframe(df_results, use_container_width=True)
 
-            # Summary chart
-            counts = df_results["Classification"].value_counts().reset_index()
-            counts.columns = ["Classification", "Count"]
-            fig = px.bar(
-                counts,
-                x="Classification",
-                y="Count",
-                color="Classification",
-                title="Harmful vs neutral sequences",
-                text="Count"
-            )
-            fig.update_layout(yaxis_title="Number of samples")
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("No sequences detected. Please check your input format.")
+        counts = df_results["Classification"].value_counts().reset_index()
+        counts.columns = ["Classification", "Count"]
+
+        fig = px.bar(counts, x="Classification", y="Count", color="Classification",
+                     title="Harmful vs Neutral Sequences", text="Count")
+        st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------
-# CRISPR-SHERLOCK design tab
+# CRISPR-SHERLOCK Tab
 # -----------------------------
 with tab_crispr:
-    st.subheader("Design a simple CRISPR-SHERLOCK assay")
+    st.subheader("CRISPR Assay Designer")
 
-    st.markdown(
-        """
-Paste a target DNA sequence (for example, a toxin gene fragment).
-The app will:
-
-- Propose a **20-nt CRISPR guide**
-- Design simple **forward and reverse primers**
-- Simulate an **assay signal** based on guide–target match
-"""
-    )
-
-    target_default = (
-        "ATGACCTGACCTGTTTACGATCGTAGCTAGCTAGCTAGCTAGCTGACTGACTGACTG"
-    )
-
-    target_seq = st.text_area(
-        "Target DNA sequence",
-        value=target_default,
-        height=150
-    )
+    target_default = "ATGACCTGACCTGTTTACGATCGTAGCTAGCTAGCTAGCTAGCTGACTGACTGACTG"
+    target_seq = st.text_area("Target DNA Sequence", value=target_default, height=150)
 
     col1, col2 = st.columns(2)
-
     with col1:
-        guide_length = st.slider("Guide length (nt)", 15, 24, 20)
+        guide_length = st.slider("Guide length", 15, 24, 20)
     with col2:
-        primer_length = st.slider("Primer length (nt)", 16, 24, 18)
+        primer_length = st.slider("Primer length", 16, 24, 18)
 
     if st.button("Design CRISPR assay"):
         guide = design_crispr_guide(target_seq, guide_length)
         fwd, rev = design_primers(target_seq, primer_length)
 
-        if not guide:
-            st.error(
-                "Could not design a guide. Ensure your sequence is long and contains only A/C/G/T."
-            )
+        if guide:
+            st.markdown("### Guide RNA")
+            st.code(guide)
         else:
-            st.markdown("#### Guide RNA")
-            st.code(guide, language="text")
+            st.error("Guide could not be designed.")
 
-        if not fwd or not rev:
-            st.warning(
-                "Could not design primers — sequence may be too short. "
-                "Try a longer input sequence or shorter primer length."
-            )
+        if fwd and rev:
+            st.markdown("### Primers")
+            st.code(f"Forward: {fwd}")
+            st.code(f"Reverse: {rev}")
         else:
-            st.markdown("#### Primers")
-            st.markdown("**Forward primer (5'→3')**")
-            st.code(fwd, language="text")
-            st.markdown("**Reverse primer (5'→3')**")
-            st.code(rev, language="text")
+            st.warning("Primers could not be designed.")
 
         if guide:
             signal = simulate_sherlock_signal(guide, target_seq)
-            st.markdown("#### Simulated SHERLOCK signal")
-            st.write(f"Simulated fluorescence signal: **{signal}** arbitrary units (0–100)")
+            st.markdown(f"### Simulated SHERLOCK Signal: **{signal} a.u.**")
 
-            fig_signal = px.bar(
-                x=["Assay signal"],
-                y=[signal],
-                range_y=[0, 100],
-                title="Simulated CRISPR-SHERLOCK assay signal",
-                text=[signal]
-            )
-            fig_signal.update_layout(
-                yaxis_title="Signal (a.u.)",
-                xaxis_title="",
-                showlegend=False
-            )
+            fig_signal = px.bar(x=["Signal"], y=[signal], range_y=[0, 100],
+                                title="Simulated CRISPR-SHERLOCK Signal", text=[signal])
             st.plotly_chart(fig_signal, use_container_width=True)
 
 # -----------------------------
-# Visualizations tab
+# Visualizations Tab
 # -----------------------------
 with tab_visuals:
-    st.subheader("Visualizing sample-level bloom risk")
+    st.subheader("Synthetic Dataset Visualization")
 
-    st.markdown(
-        """
-Generate a **synthetic dataset** of algae samples and see:
-
-- Distribution of harmful vs neutral classifications
-- Example "assay signal" distributions
-"""
-    )
-
-    n_samples = st.slider("Number of synthetic samples", 10, 200, 40)
+    n_samples = st.slider("Number of samples", 10, 200, 40)
 
     if st.button("Generate synthetic dataset"):
         df_samples = generate_example_dataset(n_samples)
-        st.dataframe(df_samples[["Sample ID", "Label"]], use_container_width=True)
+        st.dataframe(df_samples, use_container_width=True)
 
-        # Label distribution
         label_counts = df_samples["Label"].value_counts().reset_index()
         label_counts.columns = ["Label", "Count"]
 
         col1, col2 = st.columns(2)
 
         with col1:
-            fig_pie = px.pie(
-                label_counts,
-                names="Label",
-                values="Count",
-                title="Proportion of harmful vs neutral samples"
-            )
+            fig_pie = px.pie(label_counts, names="Label", values="Count",
+                             title="Harmful vs Neutral Distribution")
             st.plotly_chart(fig_pie, use_container_width=True)
 
         with col2:
-            # Simulate "assay signal" for each sample
             signals = []
             for _, row in df_samples.iterrows():
-                label = row["Label"]
-                # Higher signal for harmful, lower for neutral
-                if label == "Harmful":
-                    s = random.uniform(60, 100)
-                elif label == "Neutral":
-                    s = random.uniform(0, 40)
+                if row["Label"] == "Harmful":
+                    signals.append(random.uniform(60, 100))
                 else:
-                    s = random.uniform(0, 20)
-                signals.append(s)
+                    signals.append(random.uniform(0, 40))
 
-            df_samples["Simulated signal"] = signals
-            fig_hist = px.histogram(
-                df_samples,
-                x="Simulated signal",
-                color="Label",
-                nbins=20,
-                title="Distribution of simulated CRISPR assay signals"
-            )
-            fig_hist.update_layout(xaxis_title="Signal (a.u.)")
+            df_samples["Signal"] = signals
+
+            fig_hist = px.histogram(df_samples, x="Signal", color="Label",
+                                    nbins=20, title="Simulated Assay Signal Distribution")
             st.plotly_chart(fig_hist, use_container_width=True)
 
-        st.markdown(
-            """
-**Interpretation (conceptual):**
-
-- Samples classified as **harmful** tend to have **higher assay signal**.
-- **Neutral** samples cluster at lower signal values.
-- A real diagnostic system would calibrate thresholds based on
-  experimental validation and controls.
-"""
-        )
+# -----------------------------
+# Footer
+# -----------------------------
+st.markdown(
+    """
+    <style>
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #f0f2f6;
+            color: #333;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #d3d3d3;
+        }
+    </style>
+    <div class="footer">
+        App Developed by <strong>Sathvik Kakarla</strong>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
