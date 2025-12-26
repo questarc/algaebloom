@@ -93,7 +93,7 @@ st.set_page_config(
 st.title("Algaebloom: Synthetic Biology CRISPR-SHERLOCK Explorer")
 
 st.markdown("""
-Algaebloom is a conceptual synthetic biology dashboard for **algal bloom monitoring**.
+Algaebloom is a conceptual synthetic biology dashboard for **algae bloom monitoring**.
 
 It lets you:
 
@@ -105,7 +105,7 @@ It lets you:
 
 st.sidebar.header("About Algaebloom")
 st.sidebar.markdown("""
-**Goal:** Explore how synthetic biology and CRISPR diagnostics can detect harmful algal blooms.
+**Goal:** Explore how synthetic biology and CRISPR diagnostics can detect harmful algae blooms.
 
 This app uses **synthetic motifs and simplified models** for educational purposes.
 """)
@@ -120,7 +120,7 @@ tab_overview, tab_classification, tab_crispr, tab_visuals = st.tabs(
 with tab_overview:
     st.subheader("Biology Background")
     st.markdown("""
-Harmful algal blooms (HABs) produce toxins that damage ecosystems and human health.  
+Harmful algae blooms (HABs) produce toxins that damage ecosystems and human health.  
 Neutral blooms do not produce toxins and are part of natural cycles.
 """)
 
